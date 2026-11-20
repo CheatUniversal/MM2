@@ -1,4 +1,4 @@
--- XONI HUB V36 | Bordes corregidos, FOV fuera del panel, Coin Collector sin subida
+-- XONI HUB V37 | Bordes corregidos, FOV fuera del panel, Coin Collector sin subida
 -- Murder vs Sheriff | XONI HUB V13 - GUI CARBON / RED (LocalScript)
 -- Colocar en StarterPlayer > StarterPlayerScripts dentro de TU experiencia.
 -- Detecta Knife o Gun dentro de Character y Backpack cuando son visibles al cliente.
@@ -364,7 +364,7 @@ nav("OP","◎",62,"Op")
 nav("Aim","⊙",131,"Aim")
 nav("Player","◇",162,"Player")
 nav("Configuración","⚙",228,"Settings")
-UI.versionLabel=text(side,"XONI HUB  •  V36",9,C.muted,true,{Position=UDim2.new(0,5,1,-23),Size=UDim2.new(1,-10,0,17),TextXAlignment=Enum.TextXAlignment.Center})
+UI.versionLabel=text(side,"XONI HUB  •  V37",9,C.muted,true,{Position=UDim2.new(0,5,1,-23),Size=UDim2.new(1,-10,0,17),TextXAlignment=Enum.TextXAlignment.Center})
 UI.fpsPanel=new("Frame",side,{Name="FPSStatus",Position=UDim2.new(0,12,1,-53),Size=UDim2.new(1,-24,0,25),BackgroundColor3=C.bg,BorderSizePixel=0})
 round(UI.fpsPanel,12)
 line(UI.fpsPanel,C.line,.5)
@@ -585,12 +585,7 @@ local setGunEsp = option(opPage, "ESP Gun", "Marca la GunDrop a través de las p
     state.gunEsp = v
     if v then notify("ESP Gun", "Buscando GunDrop en el mapa...", C.red) end
 end)
-UI.infoStatus = card(opPage, 98)
-registerSearch(UI.infoStatus, "informacion esp estado wallcheck distancia usuario visibilidad", "Información ESP")
-text(UI.infoStatus, "INFORMACIÓN DEL ESP", 13, C.ink, true, {Position=UDim2.fromOffset(16,8), Size=UDim2.new(1,-32,0,24)})
-UI.infoStatusText = text(UI.infoStatus,
-    "Wallcheck: DESACTIVADO  •  Los marcadores atraviesan paredes\nMurder: esperando  |  Sheriff: esperando",
-    11, C.muted, false, {Position=UDim2.fromOffset(16,34),Size=UDim2.new(1,-32,0,53),TextWrapped=true})
+-- Tarjeta INFORMACIÓN DEL ESP eliminada: los controles ESP quedan en OP.
 
 local setAutoGun = option(opPage, "AutoCatchGun", "Busca la Gun Drop y regresa automáticamente.", C.mint, function(v) state.autoGun = v; gunLastSeen = nil end)
 local killSheriffButton = actionOption(opPage, "Kill Sheriff", "Acción con Knife sobre el Sheriff, cuando está disponible.", C.red, function() end)
@@ -1468,7 +1463,7 @@ function UI.ensureVisual(p, role)
         })
         local bill = new("BillboardGui", gui, {
             Name = "RoleTag", Adornee = head, Enabled = true, AlwaysOnTop = true,
-            Size = UDim2.fromOffset(180, 49), StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0),
+            Size = UDim2.fromOffset(180, 38), StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0),
             MaxDistance = 0, LightInfluence = 0, ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         })
         local bg = new("Frame", bill, {Size = UDim2.fromScale(1,1), BackgroundColor3 = Color3.fromRGB(26,34,52), BackgroundTransparency = 0.05, BorderSizePixel = 0})
@@ -1484,31 +1479,9 @@ function UI.ensureVisual(p, role)
     local myRoot = me.Character and me.Character:FindFirstChild("HumanoidRootPart")
     local theirRoot = char:FindFirstChild("HumanoidRootPart")
     v.billboard.Adornee = head
-    local visibleToMe=false
-    local cam=workspace.CurrentCamera
-    if cam then
-        local startPoint=cam.CFrame.Position
-        local rayParams=RaycastParams.new()
-        rayParams.FilterType=Enum.RaycastFilterType.Exclude
-        local exclusions={cam}
-        if me.Character then table.insert(exclusions,me.Character) end
-        rayParams.FilterDescendantsInstances=exclusions
-        rayParams.IgnoreWater=true
-        -- Comprobar el torso y la cabeza: un muro que tapa el personaje
-        -- devuelve una pieza del mapa, no una del personaje objetivo.
-        local hrp=char:FindFirstChild("HumanoidRootPart")
-        for _,point in ipairs({head.Position, hrp and hrp.Position or head.Position}) do
-            local direction=point-startPoint
-            local hit=workspace:Raycast(startPoint,direction,rayParams)
-            if hit==nil or hit.Instance:IsDescendantOf(char) then
-                visibleToMe=true
-                break
-            end
-        end
-    end
-    v.label.Text=string.upper(role) .. (p==me and "  •  TÚ" or "")
-        .. "\n@"..p.Name
-        .. "\nWALLCHECK: " .. (visibleToMe and "NO" or "SI")
+    -- Etiqueta ESP limpia: solo rol y usuario, sin estado Wallcheck.
+    v.label.Text = string.upper(role) .. (p == me and "  •  TÚ" or "")
+        .. "\n@" .. p.Name
     v.highlight.Enabled = true
     v.billboard.Enabled = true
 end
@@ -2925,18 +2898,6 @@ task.spawn(function()
         UI.refreshEsp()
         UI.updateGunEsp()
         UI.updateOwnRole()
-        local function roleLabel(wanted)
-            for _, p in ipairs(Players:GetPlayers()) do
-                if UI.getRole(p) == wanted then
-                    local a = me.Character and me.Character:FindFirstChild("HumanoidRootPart")
-                    local b = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-                    local dist = a and b and "Detectado" or "Sin posición"
-                    return "@"..p.Name.."  •  "..dist..(p == me and " (TÚ)" or "")
-                end
-            end
-            return "No identificado"
-        end
-        UI.infoStatusText.Text = "WALLCHECK: NO (ESP visible a través de paredes)\nMurder: " .. roleLabel("Murder") .. "  |  Sheriff: " .. roleLabel("Sheriff")
         UI.aimInfoText.Text = "AIM: " .. (state.aim and (aimCurrentTarget and "@"..aimCurrentTarget.Name or "buscando") or "desactivado")
             .. "  •  WALLCHECK: " .. (config.aimWallcheck and "Yes" or "No")
             .. "\nMurder → Sheriff  |  Sheriff → Murder"
@@ -2972,7 +2933,6 @@ local languages = {
         ["Busca la Gun Drop y regresa automáticamente."]="Finds the dropped gun and returns automatically.",
         ["Acción con Knife sobre el Sheriff, cuando está disponible."]="Knife action against Sheriff when available.",
         ["Excluye Murder y jugadores en blacklist."]="Targets within 5000 studs; excludes Murder and blacklist.",
-        ["INFORMACIÓN DEL ESP"]="ESP INFORMATION",
         ["Sin jugador seleccionado"]="No player selected",["PLAYER ACTIONS"]="PLAYER ACTIONS",
         ["EJECUTAR"]="RUN",["GUARDAR"]="SAVE",["SUGERENCIAS"]="SUGGESTIONS",
         ["No hay opciones con ese nombre"]="No matching options",
@@ -3032,8 +2992,7 @@ local languages = {
         ["Marca la GunDrop a través de las paredes."]="Mostra a arma caída através das paredes e sua distância.",
         ["Busca la Gun Drop y regresa automáticamente."]="Encontra a arma caída e retorna automaticamente.",
         ["Acción con Knife sobre el Sheriff, cuando está disponible."]="Ação com faca contra Sheriff, quando disponível.",
-        ["Excluye Murder y jugadores en blacklist."]="Alvos até 5000 studs; exclui Murder e lista negra.",
-        ["INFORMACIÓN DEL ESP"]="INFORMAÇÕES DO ESP",["PLAYER ACTIONS"]="AÇÕES DE JOGADORES",
+        ["Excluye Murder y jugadores en blacklist."]="Alvos até 5000 studs; exclui Murder e lista negra.",["PLAYER ACTIONS"]="AÇÕES DE JOGADORES",
         ["Sin jugador seleccionado"]="Nenhum jogador selecionado",
         ["EJECUTAR"]="EXECUTAR",["GUARDAR"]="SALVAR",["SUGERENCIAS"]="SUGESTÕES",
         ["No hay opciones con ese nombre"]="Nenhuma opção encontrada",
@@ -3070,3 +3029,250 @@ local languages = {
         ["No identificado"]="Não identificado",["desactivado"]="desativado",["buscando"]="procurando",
         ["Seleccioná un jugador en OP"]="Selecione um jogador em OP",
         ["Seleccioná un objetivo disponible"]="Selecione um alvo disponível",
+        ["Guardado permanente no disponible en esta experiencia"]="Salvamento permanente indisponível nesta experiência",
+        ["Configuración guardada"] = "Configurações salvas",
+        ["No se pudo guardar; revisá DataStore"] = "Não foi possível salvar; verifique o DataStore",
+        ["Tecla de movimiento o sistema reservada"]="Tecla reservada para movimento/sistema",
+        ["ON: SI"]="ON: SIM",
+    },
+}
+
+-- Preservar a origem em espanhol; não traduzir nomes de usuários, chaves ou números.
+local selectedLanguage="es"
+local localizedObjects={}
+local internalTextChange=false
+local function translateUiString(original)
+    if selectedLanguage=="es" then return original end
+    local dict=languages[selectedLanguage] or {}
+    if dict[original] then return dict[original] end
+    local prefix,category=original:match("^(XONI HUB%s+›%s+)(.+)$")
+    if prefix then return prefix..(dict[category] or category) end
+    -- Textos de status alterados periodicamente durante a partida.
+    local result=original
+    if selectedLanguage=="en" then
+        result=result:gsub("Sin jugador seleccionado","No player selected")
+            :gsub("Seleccionado:","Selected:")
+            :gsub("Función activada","Feature enabled")
+            :gsub("Función desactivada","Feature disabled")
+            :gsub("Murder: esperando","Murder: waiting")
+            :gsub("Sheriff: esperando","Sheriff: waiting")
+            :gsub("No identificado","Not identified")
+            :gsub("desactivado","disabled")
+            :gsub("buscando","searching")
+            :gsub("No %(atraviesa paredes%)","No (through walls)")
+            :gsub("TÚ","YOU")
+            :gsub("Estado:","Status:")
+            :gsub("Agarrando coins","Collecting coins")
+            :gsub("Evitando coins cerca del Murder","Avoiding coins near Murder")
+            :gsub("buscando moneda segura","looking for a safe coin")
+            :gsub("Seleccioná primero un jugador","Select a player first")
+            :gsub("Acción terminada","Action finished")
+            :gsub("No se pudo ejecutar","Action failed")
+            :gsub("esperando nuevas monedas","waiting for new coins")
+            :gsub("SUGERENCIAS","SUGGESTIONS")
+            :gsub("resultados","results")
+    else
+        result=result:gsub("Sin jugador seleccionado","Nenhum jogador selecionado")
+            :gsub("Seleccionado:","Selecionado:")
+            :gsub("Función activada","Função ativada")
+            :gsub("Función desactivada","Função desativada")
+            :gsub("Murder: esperando","Murder: aguardando")
+            :gsub("Sheriff: esperando","Sheriff: aguardando")
+            :gsub("No identificado","Não identificado")
+            :gsub("desactivado","desativado")
+            :gsub("buscando","procurando")
+            :gsub("No %(atraviesa paredes%)","Não (através das paredes)")
+            :gsub("TÚ","VOCÊ")
+            :gsub("Estado:","Status:")
+            :gsub("Agarrando coins","Coletando moedas")
+            :gsub("Evitando coins cerca del Murder","Evitando moedas perto do Murder")
+            :gsub("buscando moneda segura","procurando moeda segura")
+            :gsub("Seleccioná primero un jugador","Selecione um jogador primeiro")
+            :gsub("Acción terminada","Ação concluída")
+            :gsub("No se pudo ejecutar","Ação falhou")
+            :gsub("esperando nuevas monedas","aguardando novas moedas")
+            :gsub("SUGERENCIAS","SUGESTÕES")
+            :gsub("resultados","resultados")
+    end
+    return result
+end
+local function attachLocale(obj)
+    if localizedObjects[obj] then return end
+    if not (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then return end
+    if obj:IsA("TextBox") then
+        local initial=obj.PlaceholderText
+        if initial and initial~="" then
+            local base=initial
+            localizedObjects[obj]={placeholder=base}
+            connect(obj:GetPropertyChangedSignal("PlaceholderText"),function()
+                if internalTextChange then return end
+                base=obj.PlaceholderText
+                localizedObjects[obj].placeholder=base
+                local converted=translateUiString(base)
+                if converted~=base then
+                    internalTextChange=true;obj.PlaceholderText=converted;internalTextChange=false
+                end
+            end)
+            local converted=translateUiString(base)
+            if converted~=base then
+                internalTextChange=true;obj.PlaceholderText=converted;internalTextChange=false
+            end
+            return
+        end
+    end
+    local base=obj.Text
+    localizedObjects[obj]={text=base}
+    connect(obj:GetPropertyChangedSignal("Text"),function()
+        if internalTextChange or not obj.Parent then return end
+        local raw=obj.Text
+        local converted=translateUiString(raw)
+        localizedObjects[obj].text=raw
+        if raw~=converted then
+            internalTextChange=true;obj.Text=converted;internalTextChange=false
+        end
+    end)
+    local converted=translateUiString(base)
+    if converted~=base then
+        internalTextChange=true;obj.Text=converted;internalTextChange=false
+    end
+end
+local function setLanguage(code)
+    selectedLanguage=code
+    config.language=code
+    for obj,data in pairs(localizedObjects) do
+        if obj.Parent then
+            internalTextChange=true
+            if data.text~=nil then obj.Text=translateUiString(data.text) end
+            if data.placeholder~=nil then obj.PlaceholderText=translateUiString(data.placeholder) end
+            internalTextChange=false
+        end
+    end
+    -- Cabecera e indicador de sección se actualizan al cambiar de idioma.
+    UI.headerTitle.Text="XONI HUB   ›   "..string.upper(activePage or "Home")
+end
+for _,obj in ipairs(gui:GetDescendants()) do attachLocale(obj) end
+connect(gui.DescendantAdded,function(obj)
+    task.defer(function() if obj.Parent and gui.Parent then attachLocale(obj) end end)
+end)
+
+-- Mantener la interfaz oculta hasta elegir idioma.
+main.Visible=false
+launcher.Visible=false
+local welcome=new("Frame",gui,{
+    Name="WelcomeLanguage",AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),
+    Size=UDim2.fromOffset(440,280),BackgroundColor3=Color3.fromRGB(10,10,13),
+    BorderSizePixel=0,ZIndex=200
+})
+round(welcome,12)
+local welcomeStroke=line(welcome,C.red,0);welcomeStroke.Thickness=2
+new("UIGradient",welcome,{Rotation=90,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(25,15,21)),ColorSequenceKeypoint.new(.65,Color3.fromRGB(11,11,15)),ColorSequenceKeypoint.new(1,Color3.fromRGB(6,6,9))})})
+local topLine=new("Frame",welcome,{Position=UDim2.fromOffset(16,8),Size=UDim2.new(1,-32,0,2),BorderSizePixel=0,BackgroundColor3=C.red,ZIndex=201})
+new("UIGradient",topLine,{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(75,12,19)),ColorSequenceKeypoint.new(.5,Color3.fromRGB(255,55,65)),ColorSequenceKeypoint.new(1,Color3.fromRGB(75,12,19))})})
+-- Animacion suave: reflejo rojo que recorre la linea y puntos flotantes.
+-- Todo vive dentro de la bienvenida, de modo que se elimina al elegir idioma.
+do
+    local sweep=new("Frame",topLine,{
+        Name="RedSweep",Size=UDim2.fromOffset(55,2),Position=UDim2.fromScale(0,0),
+        BorderSizePixel=0,BackgroundColor3=Color3.fromRGB(255,105,115),ZIndex=203
+    })
+    local t=TweenService:Create(sweep,TweenInfo.new(2.7,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{
+        Position=UDim2.new(1,-55,0,0)
+    })
+    t:Play()
+    for i=1,9 do
+        local x=((i*47)%390)+20
+        local y=((i*37)%210)+25
+        local dot=new("Frame",welcome,{
+            Name="AnimatedRedDot",Position=UDim2.fromOffset(x,y),
+            Size=UDim2.fromOffset(i%3==0 and 3 or 2,i%3==0 and 3 or 2),
+            BackgroundColor3=Color3.fromRGB(240,36,63),BackgroundTransparency=.45,
+            BorderSizePixel=0,ZIndex=200
+        })
+        round(dot,4)
+        TweenService:Create(dot,TweenInfo.new(2.1+(i%4)*.6,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{
+            Position=UDim2.fromOffset(x,y-12-(i%3)*8),BackgroundTransparency=.82
+        }):Play()
+    end
+end
+
+new("Frame",welcome,{Position=UDim2.fromOffset(25,157),Size=UDim2.new(1,-50,0,1),BackgroundColor3=Color3.fromRGB(74,34,39),BorderSizePixel=0,ZIndex=201})
+local welcomeScale=new("UIScale",welcome,{Scale=1})
+local function welcomeFit()
+    local cam=workspace.CurrentCamera
+    if cam then
+        local v=cam.ViewportSize
+        welcomeScale.Scale=math.min(1,(v.X-18)/440,(v.Y-18)/280)
+    end
+end
+welcomeFit()
+if workspace.CurrentCamera then connect(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),welcomeFit) end
+local iconFrame=new("ImageLabel",welcome,{
+    Position=UDim2.fromOffset(194,19),Size=UDim2.fromOffset(52,52),
+    Image="rbxassetid://" .. ICON_ID,BackgroundColor3=C.dark,
+    BorderSizePixel=0,ZIndex=201,ScaleType=Enum.ScaleType.Fit
+})
+round(iconFrame,9)
+local iconBorder=line(iconFrame,C.red,0);iconBorder.Thickness=1.6
+text(welcome,"BIENVENIDO A XONI HUB",20,C.white,true,{
+    Position=UDim2.fromOffset(20,81),Size=UDim2.new(1,-40,0,33),
+    TextXAlignment=Enum.TextXAlignment.Center,ZIndex=201
+})
+text(welcome,"SELECT IDIOM",11,C.muted,true,{
+    Position=UDim2.fromOffset(20,124),Size=UDim2.new(1,-40,0,22),
+    TextXAlignment=Enum.TextXAlignment.Center,ZIndex=201
+})
+local choices={
+    {code="es",name="ESPAÑOL",x=21},
+    {code="en",name="ENGLISH",x=160},
+    {code="pt",name="BRASILERO",x=299},
+}
+for _,choice in ipairs(choices) do
+    local btn=new("TextButton",welcome,{
+        Name="Language_"..choice.code,Position=UDim2.fromOffset(choice.x,174),
+        Size=UDim2.fromOffset(120,44),BackgroundColor3=C.dark,BorderSizePixel=0,
+        Text=choice.name,TextColor3=C.white,Font=Enum.Font.GothamBold,TextSize=12,
+        AutoButtonColor=false,ZIndex=201
+    })
+    round(btn,7)
+    local stroke=line(btn,C.red,.42);stroke.Thickness=1
+    text(btn,choice.code=="es" and "ES" or (choice.code=="en" and "EN" or "BR"),9,C.red,true,{Position=UDim2.fromOffset(7,2),Size=UDim2.fromOffset(22,11),TextXAlignment=Enum.TextXAlignment.Left,ZIndex=202})
+    connect(btn.MouseEnter,function()tween(btn,.12,{BackgroundColor3=C.navy})end)
+    connect(btn.MouseLeave,function()tween(btn,.12,{BackgroundColor3=C.dark})end)
+    connect(btn.MouseButton1Click,function()
+        playSound(clickSound)
+        setLanguage(choice.code)
+        welcome:Destroy()
+        main.Visible=true
+        state.open=true
+        updateScale()
+        -- Forzar la restauracion del tema guardado al abrir el panel.
+        -- Asi no queda sobrescrito por el tema inicial Rojo.
+        if typeof(readfile)=="function" then
+            local ok,data=pcall(function()
+                return game:GetService("HttpService"):JSONDecode(readfile(UI.configFileName))
+            end)
+            if ok and type(data)=="table" then
+                if type(data.theme)=="string" then
+                    for _,palette in ipairs(THEMES) do
+                        if palette.name==data.theme then applyTheme(palette);break end
+                    end
+                end
+                if type(data.panelTransparency)=="number" then updatePanelTransparency(data.panelTransparency) end
+                if type(data.scale)=="number" then
+                    config.scale=math.clamp(data.scale,0.25,1.6)
+                    UI.scaleText.Text=tostring(math.floor(config.scale*100+.5)).."%"
+                    syncSizeSlider()
+                    updateScale()
+                end
+            end
+        end
+        notify("Panel cargado","Dashboard listo",C.mint)
+    end)
+end
+text(welcome,"XONI HUB  •  V32",10,C.muted,true,{
+    Position=UDim2.fromOffset(20,239),Size=UDim2.new(1,-40,0,20),
+    TextXAlignment=Enum.TextXAlignment.Center,ZIndex=201
+})
+
+
+end -- XONI HUB localization / welcome local scope
